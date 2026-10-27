@@ -21,6 +21,7 @@
     <p class="small">Si el año del vehículo no está en el texto del modelo (ej. <code>MY´20</code> o <code>2023</code>), podés agregar una columna <b>Año</b>.</p>
     <div class="row">
       <button class="btn primary" id="pick">Elegir archivo…</button>
+      <button class="btn" id="addBtn0">＋ Agregar cliente a mano</button>
       <button class="btn" id="demo">Probar con datos de ejemplo</button>
       <a class="btn" href="ejemplo_clientes.xlsx" download style="text-decoration:none">Descargar Excel de ejemplo</a>
     </div>
@@ -31,7 +32,7 @@
     <div class="card">
       <div class="toolbar">
         <div class="grp"><label class="l">Archivo</label>
-          <div style="display:flex;gap:8px;align-items:center"><button class="btn" id="pick2">Cargar otro…</button><span class="small" id="fname"></span></div>
+          <div style="display:flex;gap:8px;align-items:center"><button class="btn" id="pick2">Cargar otro…</button><button class="btn" id="addBtn">＋ Agregar cliente</button><span class="small" id="fname"></span></div>
         </div>
         <div class="grp"><label class="l">Descuento sobre CCA</label>
           <div><input type="number" id="pct" class="w60" min="0" max="90" step="0.5"> %</div></div>
@@ -75,6 +76,19 @@
   </section>
 </main>
 
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <h3>Agregar cliente</h3>
+    <div class="mform">
+      <label>Cliente<input id="m-cli" type="text" autocomplete="off"></label>
+      <label>Vehículo actual<input id="m-veh" type="text" autocomplete="off" placeholder="Ej.: COROLLA XLI 2023 · HILUX SRV 4X2 MY´20"></label>
+      <label>Año <span class="small">(si no está en el texto del vehículo)</span><input id="m-year" type="number" min="1990" max="2030"></label>
+      <label>Teléfono<input id="m-tel" type="text" autocomplete="off" inputmode="tel" placeholder="Ej.: 379 4123456"></label>
+    </div>
+    <div id="m-err" class="bad"></div>
+    <div class="mactions"><button class="btn" id="m-cancel" type="button">Cancelar</button><button class="btn primary" id="m-add" type="button">Agregar</button></div>
+  </div>
+</div>
 <div id="dd"></div>
 <div id="toast"></div>
 <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hidden">
@@ -89,5 +103,6 @@
 <script src="js/combo.js"></script>
 <script src="js/explain.js"></script>
 <script src="js/app.js"></script>
+<script src="js/manual.js"></script>
 </body>
 </html>

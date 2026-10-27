@@ -44,6 +44,11 @@ function buildRow(r){
   tr.append(tdC, tdV, tdT, tdO, tdU, tdF, tdM, tdA);
 
   tdC.append(el('div','cli', r.cliente || '—'));
+  if (r.manual) {
+    const mt = el('div','cellnote'); mt.append(el('span','badge manual','manual'), ' ');
+    const rm = el('button','linkbtn','Quitar'); rm.type = 'button'; rm.addEventListener('click', () => removeRow(r));
+    mt.append(rm); tdC.append(mt);
+  }
 
   tdV.append(el('div','veh-text', r.veh));
   const yr = el('div','yr'); yr.append('Año');
@@ -181,13 +186,28 @@ function applyFilter(){
 }
 
 /* ---------- carga de datos ---------- */
+function makeRow(x){
+  const r = { cliente: x.cliente, veh: x.veh, tel: x.tel, year: x.year || detectYear(x.veh), msg: null, sent: false, manual: !!x.manual };
+  r.hay = norm(r.cliente + ' ' + r.veh);
+  recompute(r); return r;
+}
+// Al cargar un archivo se reemplazan las filas del archivo anterior, pero se conservan los clientes cargados a mano.
 function makeRows(list){
-  ROWS = list.map(x => {
-    const r = { cliente: x.cliente, veh: x.veh, tel: x.tel, year: x.year || detectYear(x.veh), msg: null, sent: false };
-    r.hay = norm(r.cliente + ' ' + r.veh);
-    recompute(r); return r;
-  });
+  ROWS = [...ROWS.filter(r => r.manual), ...list.map(makeRow)];
   render();
+}
+function addManual(x){
+  const r = makeRow({ ...x, manual: true });
+  ROWS.unshift(r);
+  if ($('app').classList.contains('hidden')) { $('fname').textContent = 'Clientes cargados a mano'; render(); }
+  else { $('tb').prepend(buildRow(r)); applyFilter(); updateStats(); }
+  r.tr.scrollIntoView({ block: 'nearest' });
+  r.tr.classList.add('flash'); setTimeout(() => r.tr.classList.remove('flash'), 1800);
+}
+function removeRow(r){
+  ROWS = ROWS.filter(x => x !== r);
+  r.tr.remove(); if (r.det) r.det.remove();
+  updateStats();
 }
 function parseSheet(aoa){
   aoa = aoa.filter(row => row && row.some(c => String(c == null ? '' : c).trim() !== ''));
