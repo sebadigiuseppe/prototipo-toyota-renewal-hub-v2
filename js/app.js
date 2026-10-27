@@ -39,7 +39,7 @@ function recompute(r){
 }
 
 function buildRow(r){
-  const tr = document.createElement('tr'); r.tr = tr;
+  const tr = document.createElement('tr'); r.tr = tr; r.open = false; r.det = null;
   const tdC = el('td'), tdV = el('td'), tdT = el('td'), tdO = el('td'), tdU = el('td'), tdF = el('td'), tdM = el('td'), tdA = el('td');
   tr.append(tdC, tdV, tdT, tdO, tdU, tdF, tdM, tdA);
 
@@ -74,6 +74,9 @@ function buildRow(r){
   r.badge = el('span','badge','revisar coincidencia');
   const uw = el('div','cellnote'); uw.append(r.usedCombo.root);
   tdU.append(r.amount, r.formula, uw, r.badge);
+  r.calcBtn = el('button','linkbtn','▸ Ver cálculo'); r.calcBtn.type = 'button';
+  r.calcBtn.addEventListener('click', () => toggleCalc(r));
+  const cb = el('div','cellnote'); cb.append(r.calcBtn); tdU.append(cb);
 
   r.fMax = num('maxFin'); r.fTasa = num('tasa', { decimal: true });
   const fgrid = el('div','mgrid');
@@ -134,7 +137,17 @@ function refresh(r){
   r.btn.classList.toggle('done', !!r.sent);
   r.btnNote.textContent = !r.phoneN ? 'Teléfono inválido' : (t == null ? 'Falta valor de toma' : (!c ? 'Falta precio 0 km' : ''));
   r.tr.classList.toggle('sent', !!r.sent);
+  if (r.open) renderExplain(r);
   updateStats();
+}
+
+function toggleCalc(r){
+  r.open = !r.open;
+  if (r.open) {
+    if (!r.det) { r.det = document.createElement('tr'); r.det.className = 'detail'; r.detCell = el('td'); r.detCell.colSpan = 8; r.det.append(r.detCell); }
+    r.tr.after(r.det); renderExplain(r);
+  } else if (r.det) r.det.remove();
+  r.calcBtn.textContent = r.open ? '▾ Ocultar cálculo' : '▸ Ver cálculo';
 }
 
 function send(r){
@@ -160,7 +173,11 @@ function render(){
 }
 function applyFilter(){
   const q = norm($('q').value).trim();
-  ROWS.forEach(r => r.tr && r.tr.classList.toggle('hidden', !!q && !r.hay.includes(q)));
+  ROWS.forEach(r => {
+    const hide = !!q && !r.hay.includes(q);
+    if (r.tr) r.tr.classList.toggle('hidden', hide);
+    if (r.det) r.det.classList.toggle('hidden', hide);
+  });
 }
 
 /* ---------- carga de datos ---------- */

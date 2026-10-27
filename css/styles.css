@@ -80,3 +80,18 @@ textarea.msg{width:100%;min-width:320px;height:7.4em;resize:vertical;font-size:1
 .mf label{font-size:11px;color:var(--mut)}
 .mf input{width:100%;padding:5px 7px;font-size:13px;font-variant-numeric:tabular-nums}
 .totalline{margin-top:9px;font-weight:700;font-variant-numeric:tabular-nums}
+
+.linkbtn{background:none;border:0;padding:0;color:var(--red);font:inherit;font-size:12px;cursor:pointer}
+.linkbtn:hover{text-decoration:underline}
+tbody tr.detail td{background:#fafbfc;padding:14px 18px}
+tbody tr.detail:hover td{background:#fafbfc}
+.calcbox{max-width:820px}
+.calctitle{font-weight:700;margin-bottom:8px}
+table.calc{min-width:0;width:100%;border-collapse:collapse;background:transparent;margin-bottom:8px}
+table.calc td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+table.calc td.a{white-space:nowrap}
+table.calc td.b{color:var(--mut);font-size:12.5px}
+table.calc td.v{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.calc tr.total td{font-weight:700;background:#f1f3f5}
+table.calc tr.info td{color:var(--mut)}
+table.calc tr.warn td{color:var(--warn);background:var(--warn-bg)}
