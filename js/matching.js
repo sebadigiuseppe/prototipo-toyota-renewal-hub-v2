@@ -92,11 +92,13 @@ function seriesYear(d, fb){
   return m ? +m[m.length-1] : fb;
 }
 function matchUsed(text, year){
-  if (!year) return { row:null, review:true };
+  if (!year) return { row:null, review:true, reason:'noyear' };
   const fam = detectFamily(text);
+  // sin modelo reconocible no se adivina: que lo elija la persona en el desplegable
+  if (!fam) return { row:null, review:true, reason:'nofam' };
   const q = tokens(text);
   const cands = DATA.filter(r => r.v[year] && (!fam || fam.includes(r.f)));
-  if (!cands.length) return { row:null, review:true };
+  if (!cands.length) return { row:null, review:true, reason:'nodata' };
   const sc = cands.map(r => { const prox = Math.abs(seriesYear(r.d, year) - year); return { r, s0: score(q, tokens(r.d)), prox }; })
     .sort((a,b) => (b.s0 - 0.01 * b.prox) - (a.s0 - 0.01 * a.prox));
   const best = sc[0], second = sc[1];

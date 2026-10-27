@@ -56,7 +56,7 @@ tbody tr.sent td{background:var(--ok)}
 .combo .combo-btn{border:1px solid var(--line);border-left:0;background:#fafbfc;border-radius:0 8px 8px 0;padding:0 9px;cursor:pointer;color:var(--mut)}
 .combo .combo-btn:hover{background:#f0f1f3}
 .cellnote{margin-top:5px}
-#dd{position:fixed;z-index:1000;background:#fff;border:1px solid #cfd4da;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16);overflow:auto;display:none;font-size:13px}
+#dd{position:fixed;z-index:2100;background:#fff;border:1px solid #cfd4da;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.16);overflow:auto;display:none;font-size:13px}
 #dd .opt{padding:7px 11px;display:flex;justify-content:space-between;gap:14px;cursor:pointer}
 #dd .opt .s{color:var(--mut);white-space:nowrap;font-variant-numeric:tabular-nums}
 #dd .opt.act{background:#fdecee}
@@ -106,3 +106,8 @@ tbody tr.flash td{background:#fff8d6!important;transition:background .6s}
 .mform input{font-size:14px;color:var(--ink)}
 .mactions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
 #m-err{margin-top:10px;min-height:1em}
+
+.combo.free input{border-radius:8px}
+.mform .combo{min-width:0}
+.mform .combo input{font-size:14px}
+#m-veh-slot{display:block}

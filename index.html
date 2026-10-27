@@ -5,6 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Toyota Renewal Hub · Prototipo</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
+<meta name="description" content="Propuestas de renovación para clientes de Servicio: valor de toma según CCA, financiación y mensaje listo para WhatsApp.">
+<!-- Vista previa al compartir el link (WhatsApp, etc.). La imagen requiere URL absoluta. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Toyota Renewal Hub · Prototipo">
+<meta property="og:description" content="Propuestas de renovación para clientes de Servicio: valor de toma según CCA, financiación y mensaje listo para WhatsApp.">
+<meta property="og:image" content="https://sebadigiuseppe.github.io/prototipo-toyota-renewal-hub-v2/img/preview.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:url" content="https://sebadigiuseppe.github.io/prototipo-toyota-renewal-hub-v2/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
@@ -81,7 +92,7 @@
     <h3>Agregar cliente</h3>
     <div class="mform">
       <label>Cliente<input id="m-cli" type="text" autocomplete="off"></label>
-      <label>Vehículo actual<input id="m-veh" type="text" autocomplete="off" placeholder="Ej.: COROLLA XLI 2023 · HILUX SRV 4X2 MY´20"></label>
+      <label>Vehículo actual <span class="small">(escribí y elegí de la lista, o dejá tu texto)</span><span id="m-veh-slot"></span></label>
       <label>Año <span class="small">(si no está en el texto del vehículo)</span><input id="m-year" type="number" min="1990" max="2030"></label>
       <label>Teléfono<input id="m-tel" type="text" autocomplete="off" inputmode="tel" placeholder="Ej.: 379 4123456"></label>
     </div>

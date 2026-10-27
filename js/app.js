@@ -33,7 +33,7 @@ function autoMsg(r){
 }
 function recompute(r){
   const m = matchUsed(r.veh, r.year);
-  r.usedId = m.row ? m.row.id : null; r.review = m.review;
+  r.usedId = m.row ? m.row.id : null; r.review = m.review; r.reason = m.reason || null;
   const o = matchOffer(r.veh, m.row);
   r.offerId = o ? o.id : null;
 }
@@ -124,8 +124,9 @@ function refresh(r){
     r.formula.textContent = 'CCA ' + PERIOD + ': ' + fmt(p) + ' − ' + S.pct + '%' + (S.round ? ' (redondeado)' : '');
   } else {
     r.amount.className = 'amount none';
-    r.amount.textContent = r.year ? 'Sin valor CCA' : 'Falta el año';
-    r.formula.textContent = r.year ? 'No hay versión CCA con valor para ' + r.year : 'Indicá el año del vehículo';
+    const nm = r.year && !u && r.reason === 'nofam';
+    r.amount.textContent = !r.year ? 'Falta el año' : (nm ? 'Modelo no reconocido' : 'Sin valor CCA');
+    r.formula.textContent = !r.year ? 'Indicá el año del vehículo' : (nm ? 'Elegí la versión en el desplegable de abajo' : 'No hay versión CCA con valor para ' + r.year);
   }
   r.badge.classList.toggle('hidden', !(r.review && t != null));
 

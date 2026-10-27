@@ -15,8 +15,14 @@ Se publica tal cual en GitHub Pages: no requiere servidor ni compilación.
 - `js/manual.js` — formulario para agregar clientes a mano
 - `js/util.js`, `js/combo.js` — utilidades y autocompletado
 - `js/app.js` — tabla, carga de Excel y eventos
+- `img/preview.jpg` — imagen que se ve al compartir el link (1200×630)
 - `ejemplo_clientes.xlsx` — archivo de prueba
 
 ## Actualización mensual
 Cada mes se genera un nuevo archivo `js/data/cca-AAAA-MM.js` desde el PDF de la CCA
 y se actualiza la referencia en `index.html`.
+
+## Vista previa al compartir el link
+`index.html` (cabecera) tiene etiquetas `og:` que apuntan a la URL de GitHub Pages y a `img/preview.jpg`.
+Si cambia la URL del sitio o el nombre del repositorio, hay que actualizar `og:image` y `og:url`.
+WhatsApp guarda la vista previa en caché: si ya compartiste el link antes, probá con `?v=2` al final.

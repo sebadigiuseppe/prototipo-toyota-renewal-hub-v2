@@ -6,7 +6,7 @@ function explainSteps(r){
   const steps = [];
   steps.push({ k:'info', a:'Vehículo del cliente', b: r.veh + (r.year ? ' · año ' + r.year : ' · sin año') });
   if (!u || p == null) {
-    steps.push({ k:'warn', a:'Valor de toma', b: r.year ? 'No hay una versión CCA con valor para el año ' + r.year + '. Probá corregir el año o elegir otra versión.' : 'Falta indicar el año del vehículo.' });
+    steps.push({ k:'warn', a:'Valor de toma', b: !r.year ? 'Falta indicar el año del vehículo.' : (!u && r.reason === 'nofam' ? 'No se reconoció el modelo. Elegí la versión CCA en el desplegable de «Valor de toma estimado».' : 'No hay una versión CCA con valor para el año ' + r.year + '. Probá corregir el año o elegir otra versión.') });
     return steps;
   }
   steps.push({ k:'row', a:'Precio CCA del usado', b: usedLabel(u) + ' · columna ' + r.year + ' · CCA ' + PERIOD + (r.review ? ' (coincidencia automática: conviene revisarla)' : ''), v: fmt(p) });

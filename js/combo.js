@@ -25,11 +25,12 @@ function showDD(inp, items, active, pick, emptyMsg){
 window.addEventListener('scroll', closeDD, true);
 window.addEventListener('resize', closeDD);
 
-function makeCombo({ getItems, onPick, placeholder, emptyMsg }){
-  const root = el('div','combo');
+// free:true = campo de texto libre con sugerencias (no obliga a elegir de la lista)
+function makeCombo({ getItems, onPick, placeholder, emptyMsg, free }){
+  const root = el('div', 'combo' + (free ? ' free' : ''));
   const inp = el('input'); inp.type = 'text'; inp.placeholder = placeholder || ''; inp.autocomplete = 'off'; inp.spellcheck = false;
   const btn = el('button','combo-btn','▾'); btn.type = 'button'; btn.tabIndex = -1; btn.title = 'Ver lista completa';
-  root.append(inp, btn);
+  root.append(inp); if (!free) root.append(btn);
   let current = null, list = [], active = 0;
   const filt = (items, q) => {
     const ws = norm(q).replace(/(\d)\.(\d)/g,'$1,$2').split(/\s+/).filter(Boolean);
@@ -38,24 +39,37 @@ function makeCombo({ getItems, onPick, placeholder, emptyMsg }){
   };
   function open(all){
     const items = getItems();
-    list = all ? items : filt(items, inp.value);
-    active = Math.max(0, list.findIndex(it => current && it.id === current.id));
-    if (!all) active = 0;
+    if (free) {
+      list = inp.value.trim() ? filt(items, inp.value) : [];
+      active = -1;
+      if (!list.length) return closeDD();
+    } else {
+      list = all ? items : filt(items, inp.value);
+      active = Math.max(0, list.findIndex(it => current && it.id === current.id));
+      if (!all) active = 0;
+    }
     showDD(inp, list, active, pick, emptyMsg);
   }
-  function pick(it){ current = it; inp.value = it.label; closeDD(); inp.blur(); onPick(it); }
-  inp.addEventListener('focus', () => { inp.select(); open(true); });
+  function pick(it){ current = it; inp.value = it.label; closeDD(); if (!free) inp.blur(); onPick(it); }
+  inp.addEventListener('focus', () => { if (!free) { inp.select(); open(true); } });
   inp.addEventListener('input', () => open(false));
-  inp.addEventListener('blur', () => { closeDD(); inp.value = current ? current.label : ''; });
+  inp.addEventListener('blur', () => { closeDD(); if (!free) inp.value = current ? current.label : ''; });
   inp.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       if (ddOwner !== inp) return open(true);
       if (!list.length) return;
-      active = (active + (e.key === 'ArrowDown' ? 1 : -1) + list.length) % list.length;
+      const d = e.key === 'ArrowDown' ? 1 : -1;
+      active = active < 0 ? (d > 0 ? 0 : list.length - 1) : (active + d + list.length) % list.length;
       showDD(inp, list, active, pick, emptyMsg);
-    } else if (e.key === 'Enter') { e.preventDefault(); if (ddOwner === inp && list[active]) pick(list[active]); }
-    else if (e.key === 'Escape') { inp.blur(); }
+    } else if (e.key === 'Enter') {
+      const picking = ddOwner === inp && list[active];
+      if (picking) { e.preventDefault(); e.stopPropagation(); pick(list[active]); }
+      else if (!free) e.preventDefault();
+    } else if (e.key === 'Escape') {
+      if (free) { if (ddOwner === inp) { e.stopPropagation(); closeDD(); } }
+      else inp.blur();
+    }
   });
   btn.addEventListener('mousedown', e => { e.preventDefault(); if (ddOwner === inp) { inp.blur(); } else { inp.focus(); } });
   return { root, input: inp, set(it){ current = it || null; if (document.activeElement !== inp) inp.value = it ? it.label : ''; } };
