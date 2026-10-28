@@ -1,8 +1,10 @@
 // Formato de importes, nombres de modelos y armado del mensaje de WhatsApp
 const fmt = n => '$' + Math.round(n).toLocaleString('es-AR');
-function famLabel(f){ return ({ 'HILUX PICK - UP':'HILUX', 'HILUX PICK - UP COVER':'HILUX COVER', 'RAV - 4':'RAV4', 'C - HR':'C-HR' })[f] || f; }
-function offerLabel(r){ return (famLabel(r.f) + ' ' + r.d).replace(/\s+(19|20)\d{2}$/,'').replace(/\s+/g,' ').trim(); }
-function usedLabel(r){ return (famLabel(r.f) + ' ' + r.d).replace(/\s+/g,' ').trim(); }
+function famLabel(f){ return String(f).replace(/\s*PICK - UP/,'').replace(/\s+-\s+/g,'-').trim(); }
+const brandPrefix = r => r.b === HOUSE_BRAND ? '' : r.b + ' ';
+const cleanSp = s => s.replace(/\s+/g,' ').trim();
+function offerLabel(r){ return cleanSp(brandPrefix(r) + famLabel(r.f) + ' ' + r.d.replace(/\s+(19|20)\d{2}$/,'')); }
+function usedLabel(r){ return cleanSp(brandPrefix(r) + famLabel(r.f) + ' ' + r.d); }
 function fillTpl(tpl, vars){
   return Object.keys(vars).reduce((t, k) => t.replaceAll('{' + k + '}', vars[k]), tpl);
 }

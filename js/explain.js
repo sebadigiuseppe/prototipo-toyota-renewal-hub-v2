@@ -4,9 +4,22 @@ function explainSteps(r){
   const src = ov => ov != null ? 'valor propio de esta fila' : 'valor general';
   const sgn = n => (n < 0 ? '− ' : '+ ') + fmt(Math.abs(n));
   const steps = [];
+  if (noVeh(r)) {
+    steps.push({ k:'info', a:'Vehículo del cliente', b:'Sin vehículo cargado' });
+    steps.push({ k:'warn', a:'Valor de toma', b:'Sin vehículo no se calcula valor de toma, diferencia ni saldo: quedan en blanco en el mensaje. Agregá el vehículo con «＋ Agregar vehículo».' });
+    const pn = precioNuevoSolo(r);
+    if (pn != null) {
+      steps.push({ k:'row', a:'Precio 0 km', b: (o ? offerLabel(o) : 'Modelo 0 km') + (r.precio != null ? ' · editado a mano' : ' · lista CCA ' + PERIOD), v: fmt(listPrice(r)) });
+      steps.push({ k:'row', a:'+ Gastos administrativos', b: src(r.gastos), v: fmt(eff(r.gastos, S.gastos)) });
+      steps.push({ k:'row', a:'+ Flete y formulario', b: src(r.flete), v: fmt(eff(r.flete, S.flete)) });
+      steps.push({ k:'total', a:'Total 0 km', b:'Precio + gastos + flete', v: fmt(pn) });
+    }
+    steps.push({ k:'row', a:'Tope financiable', b: src(r.maxFin) + ' · TASA ' + fmtTasa(eff(r.tasa, S.tasa)) + '%', v: fmt(eff(r.maxFin, S.maxFin)) });
+    return steps;
+  }
   steps.push({ k:'info', a:'Vehículo del cliente', b: r.veh + (r.year ? ' · año ' + r.year : ' · sin año') });
   if (!u || p == null) {
-    steps.push({ k:'warn', a:'Valor de toma', b: !r.year ? 'Falta indicar el año del vehículo.' : (!u && r.reason === 'nofam' ? 'No se reconoció el modelo. Elegí la versión CCA en el desplegable de «Valor de toma estimado».' : 'No hay una versión CCA con valor para el año ' + r.year + '. Probá corregir el año o elegir otra versión.') });
+    steps.push({ k:'warn', a:'Valor de toma', b: !r.year ? 'Falta indicar el año del vehículo.' : (!u && r.reason === 'usd' ? 'La CCA publica este modelo en dólares (USD): no se calcula en pesos.' : !u && r.reason === 'nofam' ? 'No se reconoció el modelo. Elegí la versión CCA en el desplegable de «Valor de toma estimado».' : 'No hay una versión CCA con valor para el año ' + r.year + '. Probá corregir el año o elegir otra versión.') });
     return steps;
   }
   steps.push({ k:'row', a:'Precio CCA del usado', b: usedLabel(u) + ' · columna ' + r.year + ' · CCA ' + PERIOD + (r.review ? ' (coincidencia automática: conviene revisarla)' : ''), v: fmt(p) });

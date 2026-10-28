@@ -35,7 +35,7 @@ function makeCombo({ getItems, onPick, placeholder, emptyMsg, free }){
   const filt = (items, q) => {
     const ws = norm(q).replace(/(\d)\.(\d)/g,'$1,$2').split(/\s+/).filter(Boolean);
     if (!ws.length) return items;
-    return items.filter(it => { it._n = it._n || norm(it.label); return ws.every(x => it._n.includes(x)); }).slice(0, 80);
+    return items.filter(it => { it._n = it._n || norm((it.k || '') + ' ' + it.label); return ws.every(x => it._n.includes(x)); }).slice(0, 80);
   };
   function open(all){
     const items = getItems();

@@ -7,10 +7,24 @@ let ROWS = [];
 
 
 /* ---------- filas ---------- */
-const offerItem = r => ({ id:r.id, label:offerLabel(r), sub:fmt(r.z * 1000) });
-const OFFER_ITEMS = DATA.filter(r => r.z).map(offerItem);
+const offerItem = r => ({ id:r.id, label:offerLabel(r), k:r.b, sub:fmt(r.z * 1000) });
+// la marca de la concesionaria va primero en las listas
+const houseFirst = (a, b) => (b.b === HOUSE_BRAND) - (a.b === HOUSE_BRAND);
+const OFFER_ITEMS = DATA.filter(r => r.z).sort(houseFirst).map(offerItem);
+// Sugerencias al escribir un vehículo: versiones sin el año de serie (el año se completa aparte), agrupadas por nombre
+const MODEL_ITEMS = (() => {
+  const m = new Map();
+  [...DATA].sort(houseFirst).forEach(r => {
+    const label = offerLabel(r), ys = Object.keys(r.v).map(Number);
+    const e = m.get(label) || { id: label, label, k: r.b, lo: 9999, hi: 0 };
+    if (ys.length) { e.lo = Math.min(e.lo, ...ys); e.hi = Math.max(e.hi, ...ys); }
+    m.set(label, e);
+  });
+  return [...m.values()].map(e => ({ id: e.id, label: e.label, k: e.k, sub: e.hi ? (e.lo === e.hi ? String(e.lo) : e.lo + '–' + e.hi) : '' }));
+})();
+const noVeh = r => !String(r.veh || '').trim();
 
-function usedPrice(r){ const u = BYID[r.usedId]; return (u && r.year && u.v[r.year]) ? u.v[r.year] * 1000 : null; }
+function usedPrice(r){ const u = BYID[r.usedId]; return (u && !u.u && r.year && u.v[r.year]) ? u.v[r.year] * 1000 : null; }
 function toma(r){
   const p = usedPrice(r); if (p == null) return null;
   let v = p * (1 - S.pct / 100);
@@ -23,8 +37,16 @@ function calc(r){
   return calcOperacion({ usado: toma(r), precioLista: listPrice(r), gastos: eff(r.gastos, S.gastos), flete: eff(r.flete, S.flete),
                          maxFin: eff(r.maxFin, S.maxFin), tasa: eff(r.tasa, S.tasa) });
 }
+function precioNuevoSolo(r){ const lp = listPrice(r); return lp == null ? null : lp + eff(r.gastos, S.gastos) + eff(r.flete, S.flete); }
+// Sin vehículo: el texto se genera igual, con en blanco todo lo que depende del usado (vehículo, valor, diferencia, saldo)
 function autoMsg(r){
-  const c = calc(r), o = BYID[r.offerId], m = v => v != null ? fmt(v) : '$—';
+  const o = BYID[r.offerId];
+  if (noVeh(r)) {
+    const pn = precioNuevoSolo(r);
+    return fillTpl(S.tpl, { cliente: titleCase(r.cliente), vehiculo: '', valor: '', oferta: o ? offerLabel(o) : '',
+      precio_nuevo: pn != null ? fmt(pn) : '', diferencia: '', financiacion: fmt(eff(r.maxFin, S.maxFin)), tasa: fmtTasa(eff(r.tasa, S.tasa)), saldo: '' });
+  }
+  const c = calc(r), m = v => v != null ? fmt(v) : '$—';
   return fillTpl(S.tpl, {
     cliente: titleCase(r.cliente), vehiculo: r.veh, valor: m(toma(r)), oferta: o ? offerLabel(o) : 'Modelo 0 km',
     precio_nuevo: m(c && c.precioNuevo), diferencia: m(c && c.diferencia), financiacion: m(c && c.financiado),
@@ -32,10 +54,14 @@ function autoMsg(r){
   });
 }
 function recompute(r){
+  if (noVeh(r)) { r.usedId = null; r.review = false; r.reason = 'noveh'; if (!r.offerManual) r.offerId = null; return; }
   const m = matchUsed(r.veh, r.year);
   r.usedId = m.row ? m.row.id : null; r.review = m.review; r.reason = m.reason || null;
-  const o = matchOffer(r.veh, m.row);
-  r.offerId = o ? o.id : null;
+  if (!r.offerManual) {
+    const o = matchOffer(r.veh, m.row), prev = r.offerId;
+    r.offerId = o ? o.id : null;
+    if (r.offerId !== prev) r.precio = null;
+  }
 }
 
 function buildRow(r){
@@ -50,18 +76,30 @@ function buildRow(r){
     mt.append(rm); tdC.append(mt);
   }
 
-  tdV.append(el('div','veh-text', r.veh));
-  const yr = el('div','yr'); yr.append('Año');
-  const yi = el('input'); yi.type = 'number'; yi.min = 1990; yi.max = 2030; yi.value = r.year || ''; yr.append(yi);
+  r.vehText = el('div','veh-text');
+  r.vehLink = el('button','linkbtn'); r.vehLink.type = 'button';
+  r.vehView = el('div'); const vl = el('div','cellnote'); vl.append(r.vehLink); r.vehView.append(r.vehText, vl);
+  r.vehCombo = makeCombo({ getItems: () => MODEL_ITEMS, free: true, placeholder: 'Ej.: COROLLA XLI 2023 · FORD RANGER XLT', onPick: () => {} });
+  const vsave = el('button','btn primary mini','Guardar'); vsave.type = 'button';
+  const vcancel = el('button','linkbtn','Cancelar'); vcancel.type = 'button';
+  const vact = el('div','vact'); vact.append(vsave, vcancel);
+  r.vehEdit = el('div','vehedit hidden');
+  r.vehEdit.append(r.vehCombo.root, vact, el('div','small cellnote','Podés escribir el año en el texto (2023, MY´20) o en el campo Año.'));
+  r.vehLink.addEventListener('click', () => openVeh(r));
+  vsave.addEventListener('click', () => saveVeh(r));
+  vcancel.addEventListener('click', () => closeVeh(r));
+  r.vehEdit.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); saveVeh(r); } else if (e.key === 'Escape') closeVeh(r); });
+  r.yrRow = el('div','yr'); r.yrRow.append('Año');
+  const yi = el('input'); yi.type = 'number'; yi.min = 1990; yi.max = 2030; yi.value = r.year || ''; r.yi = yi; r.yrRow.append(yi);
   yi.addEventListener('change', () => { r.year = yi.value ? +yi.value : null; r.msg = null; recompute(r); refresh(r); });
-  tdV.append(yr);
+  tdV.append(r.vehView, r.vehEdit, r.yrRow);
 
   r.phoneN = normPhone(r.tel, S.area);
   tdT.append(el('div','tel-n', r.tel || '—'));
   r.telNote = el('div','small'); tdT.append(r.telNote);
 
   r.offerCombo = makeCombo({ getItems: () => OFFER_ITEMS, placeholder: 'Escribí o elegí un modelo…',
-    onPick: it => { r.offerId = it.id; r.precio = null; refresh(r); } });
+    onPick: it => { r.offerId = it.id; r.precio = null; r.offerManual = true; refresh(r); } });
   tdO.append(r.offerCombo.root);
   r.offerNote = el('div','small cellnote'); tdO.append(r.offerNote);
   const num = (key, opts) => { const n = numInput({ ...opts, onSet: v => { r[key] = v; refresh(r); } }); return n; };
@@ -73,11 +111,11 @@ function buildRow(r){
 
   r.amount = el('div','amount'); r.formula = el('div','small');
   r.usedCombo = makeCombo({
-    getItems: () => r.year ? DATA.filter(x => x.v[r.year]).map(x => ({ id:x.id, label:usedLabel(x), sub:fmt(x.v[r.year]*1000) })) : [],
+    getItems: () => r.year ? DATA.filter(x => x.v[r.year] && !x.u).map(x => ({ id:x.id, label:usedLabel(x), k:x.b, sub:fmt(x.v[r.year]*1000) })) : [],
     placeholder: 'Buscar versión en CCA…', emptyMsg: 'No hay versiones CCA para ese año',
     onPick: it => { r.usedId = it.id; r.review = false; refresh(r); } });
   r.badge = el('span','badge','revisar coincidencia');
-  const uw = el('div','cellnote'); uw.append(r.usedCombo.root);
+  const uw = el('div','cellnote'); uw.append(r.usedCombo.root); r.usedWrap = uw;
   tdU.append(r.amount, r.formula, uw, r.badge);
   r.calcBtn = el('button','linkbtn','▸ Ver cálculo'); r.calcBtn.type = 'button';
   r.calcBtn.addEventListener('click', () => toggleCalc(r));
@@ -105,43 +143,69 @@ function buildRow(r){
   return tr;
 }
 
+function openVeh(r){
+  r.vehView.classList.add('hidden'); r.vehEdit.classList.remove('hidden');
+  r.vehCombo.input.value = r.veh || ''; r.vehCombo.input.focus(); r.vehCombo.input.select();
+}
+function closeVeh(r){ r.vehEdit.classList.add('hidden'); r.vehView.classList.remove('hidden'); }
+function saveVeh(r){
+  const v = r.vehCombo.input.value.trim();
+  r.veh = v; r.hay = norm(r.cliente + ' ' + v);
+  const y = detectYear(v); if (y) r.year = y;
+  r.msg = null; recompute(r); closeVeh(r); refresh(r);
+  if (v && !r.year) r.yi.focus();
+}
+
 function refresh(r){
+  const nv = noVeh(r);
+  r.vehText.textContent = nv ? 'Sin vehículo' : r.veh; r.vehText.classList.toggle('muted', nv);
+  r.vehLink.textContent = nv ? '＋ Agregar vehículo' : 'Cambiar vehículo';
+  r.yrRow.classList.toggle('hidden', nv); r.usedWrap.classList.toggle('hidden', nv);
+  if (document.activeElement !== r.yi) r.yi.value = r.year || '';
   r.phoneN = normPhone(r.tel, S.area);
   r.telNote.className = r.phoneN ? 'small' : 'bad';
   r.telNote.textContent = r.phoneN ? '→ +' + r.phoneN.replace(/^549(\d{3})(\d+)$/, '54 9 $1 $2') : 'Revisar número';
 
   const o = BYID[r.offerId], u = BYID[r.usedId];
   r.offerCombo.set(o ? offerItem(o) : null);
-  r.offerNote.textContent = o ? '' : 'No se encontró equivalente: elegí un modelo';
+  r.offerNote.textContent = o ? '' : (nv ? 'Elegí el modelo a ofrecer' : 'No se encontró equivalente: elegí un modelo');
   const lp = listPrice(r);
   r.fPrecio.set(lp, null); r.fGastos.set(r.gastos, S.gastos); r.fFlete.set(r.flete, S.flete);
   r.fMax.set(r.maxFin, S.maxFin); r.fTasa.set(r.tasa, S.tasa);
 
   r.usedCombo.set(u ? { id:u.id, label:usedLabel(u) } : null);
   const p = usedPrice(r), t = toma(r);
-  if (t != null) {
+  if (nv) {
+    r.amount.className = 'amount none'; r.amount.textContent = 'Sin vehículo'; r.formula.textContent = 'No se calcula el valor de toma';
+  } else if (t != null) {
     r.amount.className = 'amount'; r.amount.textContent = fmt(t);
     r.formula.textContent = 'CCA ' + PERIOD + ': ' + fmt(p) + ' − ' + S.pct + '%' + (S.round ? ' (redondeado)' : '');
   } else {
     r.amount.className = 'amount none';
-    const nm = r.year && !u && r.reason === 'nofam';
-    r.amount.textContent = !r.year ? 'Falta el año' : (nm ? 'Modelo no reconocido' : 'Sin valor CCA');
-    r.formula.textContent = !r.year ? 'Indicá el año del vehículo' : (nm ? 'Elegí la versión en el desplegable de abajo' : 'No hay versión CCA con valor para ' + r.year);
+    const nm = r.year && !u && r.reason === 'nofam', usd = r.year && !u && r.reason === 'usd';
+    r.amount.textContent = !r.year ? 'Falta el año' : (usd ? 'Precio en USD' : (nm ? 'Modelo no reconocido' : 'Sin valor CCA'));
+    r.formula.textContent = !r.year ? 'Indicá el año del vehículo' : (usd ? 'La CCA lo publica en dólares: no se calcula en pesos' : (nm ? 'Elegí la versión en el desplegable de abajo' : 'No hay versión CCA con valor para ' + r.year));
   }
   r.badge.classList.toggle('hidden', !(r.review && t != null));
 
   const c = calc(r);
-  r.total.textContent = c ? 'Total 0 km: ' + fmt(c.precioNuevo) : '';
-  r.finRes.textContent = c ? 'Financia ' + fmt(c.financiado) + ' · saldo ' + fmt(c.saldo) : '';
+  if (nv) {
+    const pn = precioNuevoSolo(r);
+    r.total.textContent = pn != null ? 'Total 0 km: ' + fmt(pn) : '';
+    r.finRes.textContent = 'Sin usado: se informa solo el tope';
+  } else {
+    r.total.textContent = c ? 'Total 0 km: ' + fmt(c.precioNuevo) : '';
+    r.finRes.textContent = c ? 'Financia ' + fmt(c.financiado) + ' · saldo ' + fmt(c.saldo) : '';
+  }
 
   if (r.msg == null) { r.ta.value = autoMsg(r); r.resetBtn.classList.add('hidden'); }
   else { r.ta.value = r.msg; r.resetBtn.classList.remove('hidden'); }
 
-  const ok = !!r.phoneN && !!c;
+  const ok = !!r.phoneN && (nv || !!c);
   r.btn.disabled = !ok;
   r.btn.textContent = r.sent ? 'Enviado ✓' : 'Enviar';
   r.btn.classList.toggle('done', !!r.sent);
-  r.btnNote.textContent = !r.phoneN ? 'Teléfono inválido' : (t == null ? 'Falta valor de toma' : (!c ? 'Falta precio 0 km' : ''));
+  r.btnNote.textContent = !r.phoneN ? 'Teléfono inválido' : (nv ? 'Se envía sin datos del usado' : (t == null ? 'Falta valor de toma' : (!c ? 'Falta precio 0 km' : '')));
   r.tr.classList.toggle('sent', !!r.sent);
   if (r.open) renderExplain(r);
   updateStats();
@@ -163,10 +227,10 @@ function send(r){
 }
 
 function updateStats(){
-  const n = ROWS.length, v = ROWS.filter(r => toma(r) != null).length, s = ROWS.filter(r => r.sent).length, rv = ROWS.filter(r => r.review && toma(r) != null).length;
+  const n = ROWS.length, nvc = ROWS.filter(noVeh).length, v = ROWS.filter(r => toma(r) != null).length, s = ROWS.filter(r => r.sent).length, rv = ROWS.filter(r => r.review && toma(r) != null).length;
   $('stats').innerHTML = '';
   const add = (b, t) => { const sp = el('span'); sp.append(Object.assign(el('b'), { textContent: b }), ' ' + t); $('stats').append(sp); };
-  add(n, 'clientes'); add(v, 'con valor de toma'); if (rv) add(rv, 'para revisar'); add(s, 'enviados');
+  add(n, 'clientes'); add(v, 'con valor de toma'); if (nvc) add(nvc, 'sin vehículo'); if (rv) add(rv, 'para revisar'); add(s, 'enviados');
 }
 
 function render(){
@@ -223,17 +287,24 @@ function parseSheet(aoa){
       else if (/MODELO|VEHIC|AUTO|UNIDAD|DESCRIP|VERSION/.test(h) && m.veh == null) m.veh = j;
       else if (/TEL|CEL|WHATS|MOVIL|CONTACTO/.test(h) && m.tel == null) m.tel = j;
     });
-    if (m.veh != null && (m.cli != null || m.tel != null)) { hi = i; map = m; break; }
+    if (['cli','veh','tel'].filter(k => m[k] != null).length >= 2) { hi = i; map = m; break; }
   }
   let data;
   if (hi >= 0) data = aoa.slice(hi + 1);
-  else { map = { cli:0, veh:1, tel:2 }; data = aoa; }
+  else {
+    // sin encabezados: Cliente | Modelo | Teléfono; si la 2.ª columna son teléfonos y no hay 3.ª, es Cliente | Teléfono (sin vehículo)
+    const has = v => String(v == null ? '' : v).trim() !== '';
+    const isPhone = v => /^[\d\s()+.\-]+$/.test(String(v).trim()) && String(v).replace(/\D/g,'').length >= 7;
+    const c1 = aoa.map(r => r[1]).filter(has), c2 = aoa.map(r => r[2]).filter(has);
+    map = (c1.length && c1.filter(isPhone).length / c1.length >= 0.7 && !c2.length) ? { cli:0, tel:1 } : { cli:0, veh:1, tel:2 };
+    data = aoa;
+  }
   const out = data.map(row => ({
     cliente: String(row[map.cli] == null ? '' : row[map.cli]).trim(),
     veh: String(row[map.veh] == null ? '' : row[map.veh]).trim(),
     tel: String(row[map.tel] == null ? '' : row[map.tel]).trim(),
     year: map.year != null && /^\d{4}$/.test(String(row[map.year]).trim()) ? +String(row[map.year]).trim() : null
-  })).filter(x => x.veh || x.cliente);
+  })).filter(x => x.veh || x.cliente || x.tel);
   if (!out.length) throw new Error('No encontré filas con datos.');
   return out;
 }
@@ -258,7 +329,9 @@ const SAMPLE = [
   ['LUCIA FERNANDEZ', 'COROLLA CROSS 2.0 XEI CVT MY´22', '0379 15 4000003'],
   ['CARLOS RAMIREZ', 'ETIOS 1.5 XLS 2018', '+54 9 379 000-0004'],
   ['ANA BENITEZ', 'YARIS 1.5 S CVT MY´22', '3790000005'],
-  ['ROBERTO SOSA', 'HILUX SW4 SRX 2.8 4X4 6AT 7A MY´21', '3790000006']
+  ['ROBERTO SOSA', 'HILUX SW4 SRX 2.8 4X4 6AT 7A MY´21', '3790000006'],
+  ['SOFIA DUARTE', 'FORD RANGER XLT 3.2 D/C 4X4 AT 2019', '3790000008'],
+  ['JUAN PEREZZ', '', '3790000007']
 ].map(a => ({ cliente:a[0], veh:a[1], tel:a[2] }));
 
 /* ---------- eventos ---------- */

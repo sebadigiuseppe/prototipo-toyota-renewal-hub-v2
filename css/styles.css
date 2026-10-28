@@ -111,3 +111,8 @@ tbody tr.flash td{background:#fff8d6!important;transition:background .6s}
 .mform .combo{min-width:0}
 .mform .combo input{font-size:14px}
 #m-veh-slot{display:block}
+
+.muted{color:var(--mut);font-weight:500}
+.btn.mini{padding:5px 11px;font-size:13px}
+.vehedit .vact{display:flex;gap:12px;align-items:center;margin-top:8px}
+.vehedit .combo{min-width:0}

@@ -28,7 +28,7 @@
 <main>
   <section id="empty" class="drop">
     <h2>Subí tu lista de clientes</h2>
-    <p>Archivo Excel (.xlsx / .xls) o CSV con tres columnas: <b>Cliente</b>, <b>Modelo</b> (del vehículo) y <b>Teléfono</b>.</p>
+    <p>Archivo Excel (.xlsx / .xls) o CSV con tres columnas: <b>Cliente</b>, <b>Modelo</b> (del vehículo) y <b>Teléfono</b>.<br>El modelo puede estar vacío: esos clientes quedan «sin vehículo» y se les puede agregar después en la tabla.</p>
     <p class="small">Si el año del vehículo no está en el texto del modelo (ej. <code>MY´20</code> o <code>2023</code>), podés agregar una columna <b>Año</b>.</p>
     <div class="row">
       <button class="btn primary" id="pick">Elegir archivo…</button>
@@ -92,7 +92,7 @@
     <h3>Agregar cliente</h3>
     <div class="mform">
       <label>Cliente<input id="m-cli" type="text" autocomplete="off"></label>
-      <label>Vehículo actual <span class="small">(escribí y elegí de la lista, o dejá tu texto)</span><span id="m-veh-slot"></span></label>
+      <label>Vehículo actual <span class="small">(opcional · escribí y elegí de la lista, o dejá tu texto)</span><span id="m-veh-slot"></span></label>
       <label>Año <span class="small">(si no está en el texto del vehículo)</span><input id="m-year" type="number" min="1990" max="2030"></label>
       <label>Teléfono<input id="m-tel" type="text" autocomplete="off" inputmode="tel" placeholder="Ej.: 379 4123456"></label>
     </div>
